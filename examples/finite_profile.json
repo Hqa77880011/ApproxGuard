@@ -1,0 +1,45 @@
+{
+  "multipliers": [
+    {
+      "delay": 0.8,
+      "aging": 0.03,
+      "med": 0,
+      "error_rate": 0,
+      "energy": 1,
+      "area": 1
+    },
+    {
+      "delay": 0.6,
+      "aging": 0.08,
+      "med": 0.01,
+      "error_rate": 0.015,
+      "energy": 0.4,
+      "area": 0.6
+    }
+  ],
+  "clock": 1,
+  "ages": [
+    0,
+    1,
+    2
+  ],
+  "pvt": [
+    -0.05,
+    0.05
+  ],
+  "layers": [
+    {
+      "sensitivity": 0.4,
+      "exposure": 1
+    },
+    {
+      "sensitivity": 0.2,
+      "exposure": 2
+    }
+  ],
+  "baseline_accuracy": 0.9,
+  "accuracy_tolerance": 0.03,
+  "timing_tolerance": 0.1,
+  "area_weight": 0.1,
+  "validation_accuracy": {}
+}

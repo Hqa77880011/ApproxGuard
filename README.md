@@ -71,3 +71,11 @@ approxguard execute --input example.json --output runs/execution --variant full
 ```
 
 The example is an explicit analytical/simulated input specification, not an experiment result. Replace it with the schema described above for application data. The execute path writes the actual selected actions, constraints, and mechanism metrics.
+
+## Selected reproduction setting
+
+Use the bundled two-layer, two-multiplier behavioral profile, fixed PVT corners and aging grid. Accuracy is explicitly the additive profile model unless a whole-configuration validation table is supplied. Energy/area are declared model coefficients. The mapper, timing guard and rollback operate on this complete finite setting.
+
+```bash
+python -m approxguard.cli execute --input examples/finite_profile.json --output runs/finite --variant full
+```
