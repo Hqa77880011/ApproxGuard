@@ -2,80 +2,34 @@
 
 Implementation of **ApproxGuard: Aging-Aware Layerwise Mapping of Approximate Multipliers for Reliable TinyML VLSI Accelerators**.
 
-Layer sensitivity combines multiplier error distance, error rate, and workload exposure. Aging/PVT delay trajectories define worst timing excess and clock-violation frequency. Mapping minimizes weighted energy, area, error, and timing risk; risk-prioritized rollback replaces approximate actions until the declared accuracy and timing constraints hold. Execute uses a finite profiled workload, with additive accuracy degradation explicitly treated as the profile model.
+## Installation
 
-## Install
-
-Use Python 3.10 or later. Create and activate a virtual environment, then install:
+Python >=3.10.
 
 ```bash
 python -m pip install -e .
 ```
 
-## Prepare data
+Inspection environment: Python 3.13.5, NumPy 2.1.3, PyTorch 2.7.1+cu118, SciPy 1.15.3 and scikit-learn 1.6.1. Checks cover Python syntax, JSON/TOML parsing and CLI options against parser definitions; training and evaluation were not run.
 
-Regression data are `x[N,D]` and `y[N,1]`. The execute JSON supplies layer sensitivity/exposure and multiplier energy, area, MED, ER, nominal delay, aging slope, and PVT offsets. Accuracy-validation input can contain full-mapping `validation_accuracy` records; when present those values replace additive degradation estimates for acceptance.
+## Data
 
-Arrays use numeric NPZ format, loaded without pickle. `group[N]` identifies independent subjects, devices, scenes, lots, or source images. Related samples must share a group. Optional `split[N]` codes 0/1/2/3 explicitly assign training/validation/calibration/test (three-role input using 0/1/2 remains supported); otherwise ordered groups are allocated 60/15/10/15 to training/validation/calibration/test. Test data never select model parameters or checkpoints.
+The bundled two-layer, two-multiplier profile declares PVT/aging grids, energy/area coefficients and an additive accuracy model. Replace these with application profiles using the same JSON schema.
 
-```bash
-approxguard demo --output data/example.npz --count 96 --config config.json
-approxguard prepare --input data/example.npz --output data/prepared
-```
-
-The demo defines a small synthetic problem with the documented tensor interface. Use application data in that schema for the paper's evaluation settings.
-
-## Train and execute
+## Run
 
 ```bash
-approxguard train --input data/prepared --output runs/full --config config.json --variant full --epochs 100 --batch-size 16
-approxguard evaluate --input data/prepared/test.npz --model runs/full/model.pt --output runs/full/evaluation
-approxguard plot --input runs --output runs/figures
+approxguard execute --input examples/finite_profile.json --output runs/full --variant full
 ```
 
-Training uses AdamW and selects the minimum validation objective. `model.pt` stores parameters and configuration; `history.json` records training/validation objectives. Evaluation exports predictions and mechanism tensors to `predictions.npz` and computed scores to `metrics.json`. Plotting exports comparison charts from those actual evaluation files.
+## Ablations
 
-`--device cpu` is the default; `--device cuda` selects CUDA. `--lr`, `--epochs`, `--batch-size`, and `--seed` control optimization. Method parameters are in `config.json`; `--set key=value` overrides one value using JSON syntax. Use identical splits and seeds across comparisons.
-
-## Calibration
-
-For interval or classification confidence calibration, use independent groups excluded from fitting and checkpoint selection:
+Use the same input profile for each variant: `no_aging`, `no_sensitivity`.
 
 ```bash
-approxguard calibrate --input data/prepared/calibration.npz --model runs/full/model.pt --output runs/full/calibrated.pt
+approxguard execute --input examples/finite_profile.json --output runs/no_aging --variant no_aging
 ```
 
-Evaluate `calibrated.pt` with the same evaluation command. Classification uses temperature scaling; numeric intervals use a 90% group-maximum split-calibration expansion. Insufficient independent units retain infinite intervals. Pretraining checkpoints can initialize supervised training with `train --init path/to/model.pt`.
+## Outputs
 
-## Baselines and ablations
-
-Available variants: `full`, `baseline`, `no_aging`, `no_sensitivity`. `baseline` removes the paper-specific mechanism while retaining the input and prediction task. Other variants disable their named component.
-
-```bash
-approxguard train --input data/prepared --output runs/baseline --config config.json --variant baseline
-approxguard evaluate --input data/prepared/test.npz --model runs/baseline/model.pt --output runs/baseline/evaluation
-```
-
-## Metrics and implementation conventions
-
-Classification reports accuracy, balanced accuracy, macro-F1, NLL, confidence ECE, and worst-group F1; binary tasks add AUROC and AUPRC. Unknown labels use -1 and enable unknown AUROC and OSCR. Segmentation reports Dice, IoU, precision, recall, MAE, Brier/ECE, two-pixel boundary F1, symmetric contour distance, and HD95. Reconstruction reports RMSE, MAE, signed bias, unit-range PSNR, and Gaussian-window SSIM. Each method adds its mechanism metrics where applicable.
-
-Parameter counts and forward timing describe the executing process. Use batch size one and a declared device configuration for device latency comparisons. Physical energy and scores from external task evaluators require measured inputs; they are not inferred from parameter counts. All prediction arrays remain available for task-specific evaluation.
-
-The implementation uses the explicit core operations described above with configurable compact networks. Numeric conventions and application-specific information are stated with the method and data schema. The parameter file contains the current defaults.
-
-## Execute the mechanism
-
-```bash
-approxguard execute --input example.json --output runs/execution --variant full
-```
-
-The example is an explicit analytical/simulated input specification, not an experiment result. Replace it with the schema described above for application data. The execute path writes the actual selected actions, constraints, and mechanism metrics.
-
-## Selected reproduction setting
-
-Use the bundled two-layer, two-multiplier behavioral profile, fixed PVT corners and aging grid. Accuracy is explicitly the additive profile model unless a whole-configuration validation table is supplied. Energy/area are declared model coefficients. The mapper, timing guard and rollback operate on this complete finite setting.
-
-```bash
-python -m approxguard.cli execute --input examples/finite_profile.json --output runs/finite --variant full
-```
+`runs/full/mapping.json` stores selected multiplier mapping, modeled accuracy/timing and feasibility. Input and output paths are controlled by `--input` and `--output`.
